@@ -62,6 +62,8 @@ server/
 ├── .eslintrc.js                 # ESLint config (bonus)
 └── README.md                    # Installation & usage docs
 
+---
+
 ## 📁 Project Discription
 
 - `src/config`: Centralizes all external-service connections.  
@@ -73,6 +75,16 @@ server/
 - `consumers`: Separate message-queue consumers for resiliency.  
 - `public`: Tester HTML + JS.  
 - `docker-compose.yml`: Spins up DB, cache, queue for local dev
+
+## Architectural Decisions
+
+- **Layered Structure**: Controllers for HTTP handling, Services for business logic, Consumers for queue processing.
+- **Event-Driven**: RabbitMQ decouples writes from notifications, improving reliability under load.
+- **Caching**: Redis accelerates repeated `GET /records/:id` requests.
+- **Dual Real-Time Channels**:
+  - **SSE** serves full JSON payloads for record details
+  - **Socket.IO** sends lightweight notifications (`record_create`, `record_update`)
+- **Docker-First**: Entire stack reproducible via Docker Compose.
 
 ## Features
 
@@ -89,27 +101,34 @@ server/
 ### Local Setup
 
 1. **Clone the repo**
+
    ```bash
    git clone https://github.com/your-org/live-health-status.git
    cd live-health-status
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Run DB migrations**
+
    ```bash
    npx ts-node src/scripts/migrate.ts
    ```
 
 4. **Ensure services are running locally**
+
+     ```bash
    - Redis on `localhost:6379`
    - RabbitMQ on `localhost:5672`
    - PostgreSQL on `localhost:5432`
+    ```
 
 5. **Start the server**
+
    ```bash
    npm run dev
    ```
@@ -150,7 +169,7 @@ server/
    ```bash
    docker compose up -d
    ```
-   
+
 6. **Stop & clean up**
 
    ```bash
@@ -181,6 +200,7 @@ server/
 
 - **Socket.IO**  
   Connect to WS endpoint (`/ws`) and listen for:
+
   ```js
   socket.on('record_create', ({ message, timestamp }) => { … });
   socket.on('record_update', ({ message, timestamp }) => { … });
@@ -188,15 +208,97 @@ server/
 
 ---
 
+## Usage Examples (cURL)
+
+> **Login**
+
+```bash
+curl -X POST http://localhost:4000/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"password"}'
+```
+
+> **Create**
+
+```bash
+curl -X POST http://localhost:4000/records \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Alice","age":30,"status":"Healthy"}'
+```
+
+> **Fetch by ID**
+
+```bash
+curl http://localhost:4000/records/<id> \
+  -H "Authorization: Bearer <token>"
+```
+
+> **Update**
+
+```bash
+curl -X PUT http://localhost:4000/records/<id> \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"Sick"}'
+```
+
+> **Delete**
+
+```bash
+curl -X DELETE http://localhost:4000/records/<id> \
+  -H "Authorization: Bearer <token>"
+```
+
+> **List All**
+
+```bash
+curl http://localhost:4000/records \
+  -H "Authorization: Bearer <token>"
+```
+
+> **SSE Stream**
+
+```bash
+curl http://localhost:4000/sse/health-updates
+```
+
+---
+
 ## Testing
 
+1. **Install dev dependencies**
+
+   ```bash
+   npm install --save-dev jest ts-jest supertest @types/jest @types/supertest
+   ```
+
+2. **Configure Jest** in `jest.config.js` (preset `ts-jest`, `testEnvironment: node`)
+
+3. **Run tests**
+   - Local:
+  
+     ```bash
+     npm test
+     ```
+
+   - Docker:
+
+     ```bash
+     docker compose exec api npm test
+     ```
+
+---
+
 - **Shell script**
+
   ```bash
   chmod +x run-tests.sh
   ./run-tests.sh
   ```
 
 - **Dockerized**  
+
   ```bash
   docker compose exec api bash -lc "./run-tests.sh"
   ```
@@ -206,18 +308,26 @@ server/
 ## Additional Commands
 
 - **View API container logs**
+
   ```bash
   docker compose logs -f api
   ```
+
 - **View Redis logs**
+
   ```bash
   docker compose logs -f redis
   ```
+
 - **View RabbitMQ logs**
+
   ```bash
   docker compose logs -f rabbitmq
   ```
+
 - **View Postgres logs**
+
   ```bash
   docker compose logs -f postgres
   ```
+  
