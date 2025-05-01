@@ -90,8 +90,8 @@ server/
 
 1. **Clone the repo**
    ```bash
-   git clone https://github.com/your-org/live-health-status-api.git
-   cd live-health-status-api
+   git clone https://github.com/your-org/live-health-status.git
+   cd live-health-status
    ```
 
 2. **Install dependencies**
