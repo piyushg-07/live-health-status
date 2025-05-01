@@ -1,0 +1,317 @@
+<!-- public/tester/records.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Health Status – Records</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+</head>
+<body class="bg-gray-100 p-6">
+  <header class="mb-6">
+    <h1 class="text-3xl font-bold text-center">Health Records Dashboard</h1>
+  </header>
+
+  <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Create Record -->
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-xl font-semibold mb-4">Create Record</h2>
+      <form id="createForm" class="space-y-4">
+        <input id="createName" type="text" placeholder="Name" class="w-full p-2 border rounded" required />
+        <input id="createAge"  type="number" placeholder="Age"  class="w-full p-2 border rounded" required />
+        <select id="createStatus" class="w-full p-2 border rounded" required>
+          <option value="Healthy">Healthy</option>
+          <option value="Sick">Sick</option>
+          <option value="Critical">Critical</option>
+        </select>
+        <button type="submit" class="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600 transition">
+          Create
+        </button>
+      </form>
+      <p id="createMsg" class="mt-2 text-center"></p>
+    </div>
+
+    <!-- Fetch & Update Record -->
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-xl font-semibold mb-4">Fetch & Update Record</h2>
+      <div class="mb-4">
+        <input id="recordId" type="text" placeholder="Record ID" class="w-full p-2 border rounded" />
+        <button id="btnGet" class="mt-2 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition">
+          Fetch
+        </button>
+      </div>
+
+      <!-- This form is hidden until a record is fetched -->
+      <form id="updateForm" class="space-y-4 hidden">
+        <input id="updateName" type="text" placeholder="Name" class="w-full p-2 border rounded" required />
+        <input id="updateAge"  type="number" placeholder="Age"  class="w-full p-2 border rounded" required />
+        <select id="updateStatus" class="w-full p-2 border rounded" required>
+          <option value="Healthy">Healthy</option>
+          <option value="Sick">Sick</option>
+          <option value="Critical">Critical</option>
+        </select>
+        <button type="submit" class="w-full bg-yellow-500 text-white py-2 rounded hover:bg-yellow-600 transition">
+          Update
+        </button>
+        <button id="btnDelete" type="button" class="w-full bg-red-500 text-white py-2 rounded hover:bg-red-600 transition">
+          Delete
+        </button>
+      </form>
+      <p id="manageMsg" class="mt-2 text-center"></p>
+    </div>
+  </section>
+
+  <section class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- SSE Updates -->
+    <div class="bg-white p-6 rounded-lg shadow-md overflow-auto h-64">
+      <h2 class="text-xl font-semibold mb-4">SSE Updates</h2>
+      <div id="sseLog" class="space-y-4"></div>
+    </div>
+
+    <!-- Socket.IO Notifications -->
+    <div class="bg-white p-6 rounded-lg shadow-md overflow-auto h-64">
+      <h2 class="text-xl font-semibold mb-4">Socket.IO Notifications</h2>
+      <div id="wsLog" class="space-y-2"></div>
+    </div>
+  </section>
+
+  <!-- New: All Records Table -->
+  <section class="mt-8 bg-white p-6 rounded-lg shadow-md">
+    <h2 class="text-xl font-semibold mb-4">All Records</h2>
+    <div class="overflow-auto">
+      <table class="min-w-full table-auto border-collapse">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="px-4 py-2 text-left">ID</th>
+            <th class="px-4 py-2 text-left">Name</th>
+            <th class="px-4 py-2 text-left">Age</th>
+            <th class="px-4 py-2 text-left">Status</th>
+            <th class="px-4 py-2 text-left">Last Updated</th>
+          </tr>
+        </thead>
+        <tbody id="allRecordsBody">
+          <!-- rows get injected here -->
+        </tbody>
+      </table>
+    </div>
+    <div class="flex justify-between items-center mt-4">
+      <button id="prevPage" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 disabled:opacity-50" disabled>
+        Previous
+      </button>
+      <span id="pageInfo" class="text-sm text-gray-600">Page 1 of 1</span>
+      <button id="nextPage" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 disabled:opacity-50" disabled>
+        Next
+      </button>
+    </div>
+  </section>
+
+  <script>
+    const BASE = 'http://localhost:4000';
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'login.html';
+
+    // Create
+    document.getElementById('createForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const name   = document.getElementById('createName').value;
+      const age    = parseInt(document.getElementById('createAge').value, 10);
+      const status = document.getElementById('createStatus').value;
+      const res    = await fetch(`${BASE}/records`, {
+        method: 'POST',
+        headers: {
+          'Content-Type':'application/json',
+          'Authorization':'Bearer '+token
+        },
+        body: JSON.stringify({ name, age, status })
+      });
+      document.getElementById('createMsg')
+        .innerText = res.ok ? '✔ Created!' : '✖ Create failed';
+      if (res.ok) loadAllRecords();
+    });
+
+    // Fetch by ID
+    document.getElementById('btnGet').addEventListener('click', async () => {
+      const id = document.getElementById('recordId').value.trim();
+      if (!id) return alert('Please enter an ID');
+      const res = await fetch(`${BASE}/records/${id}`, {
+        headers: { 'Authorization':'Bearer '+token }
+      });
+      const msgEl = document.getElementById('manageMsg');
+      if (!res.ok) {
+        msgEl.innerText = '✖ Not found';
+        document.getElementById('updateForm').classList.add('hidden');
+        return;
+      }
+      const rec = await res.json();
+      msgEl.innerText = '';
+      document.getElementById('updateName').value   = rec.name;
+      document.getElementById('updateAge').value    = rec.age;
+      document.getElementById('updateStatus').value = rec.status;
+      document.getElementById('updateForm').classList.remove('hidden');
+    });
+
+    // Update
+    document.getElementById('updateForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const id     = document.getElementById('recordId').value.trim();
+      const name   = document.getElementById('updateName').value;
+      const age    = parseInt(document.getElementById('updateAge').value, 10);
+      const status = document.getElementById('updateStatus').value;
+      const res    = await fetch(`${BASE}/records/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type':'application/json',
+          'Authorization':'Bearer '+token
+        },
+        body: JSON.stringify({ name, age, status })
+      });
+      document.getElementById('manageMsg')
+        .innerText = res.ok ? '✔ Updated!' : '✖ Update failed';
+      if (res.ok) loadAllRecords();
+    });
+
+    // Delete
+    document.getElementById('btnDelete').addEventListener('click', async () => {
+      const id = document.getElementById('recordId').value.trim();
+      if (!confirm(`Really delete record ${id}?`)) return;
+      const res = await fetch(`${BASE}/records/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization':'Bearer '+token }
+      });
+      document.getElementById('manageMsg')
+        .innerText = res.ok ? '✔ Deleted!' : '✖ Delete failed';
+      if (res.ok) {
+        document.getElementById('updateForm').classList.add('hidden');
+        loadAllRecords();
+      }
+    });
+
+    // Helper to prepend styled SSE card
+    function prependCard(containerId, payload) {
+      const container = document.getElementById(containerId);
+      const time = payload.record?.last_updated
+        ? new Date(payload.record.last_updated).toLocaleTimeString()
+        : new Date().toLocaleTimeString();
+      const card = document.createElement('div');
+      card.className = `
+      bg-gray-50 
+      border 
+      border-gray-200 
+      p-4 
+      rounded-lg 
+      shadow-sm 
+      hover:shadow-lg 
+      hover:bg-teal-200 
+      transition 
+      transform 
+      bg-teal-100
+      hover:-translate-y-0.5
+      mb-4
+    `.trim().replace(/\s+/g, ' ');
+    card.innerHTML = `
+    <div class="flex justify-between items-center mb-3">
+      <span class="font-semibold text-blue-600">${payload.action.toUpperCase()}</span>
+      <span class="text-xs text-gray-500">${time}</span>
+    </div>
+    <div class="flex flex-col space-y-2 text-sm">
+      <p><span class="font-medium">ID:</span> ${payload.record.id}</p>
+      <p><span class="font-medium">Name:</span> ${payload.record.name}</p>
+      <p><span class="font-medium">Age:</span> ${payload.record.age}</p>
+      <p><span class="font-medium">Status:</span> ${payload.record.status}</p>
+    </div>
+  `;
+      container.prepend(card);
+    }
+
+    // Helper for Socket.IO notifications
+    function prependNotification(containerId, message, timestamp, type) {
+      const container = document.getElementById(containerId);
+      const t = new Date(timestamp).toLocaleTimeString();
+      const colors = type === 'create'
+        ? 'bg-green-50 border-green-500'
+        : 'bg-yellow-50 border-yellow-500';
+      const card = document.createElement('div');
+      card.className = `${colors} border-l-4 p-3 rounded-lg shadow-sm hover:shadow-md transition flex justify-between hover:-translate-y-1`;
+      card.innerHTML = `
+        <span class="font-medium">${message}</span>
+        <span class="text-xs text-gray-500">${t}</span>
+      `;
+      container.prepend(card);
+    }
+
+    // SSE hookup
+    const evtSource = new EventSource(`${BASE}/sse/health-updates`);
+    evtSource.onmessage = e => {
+      const data = JSON.parse(e.data);
+      prependCard('sseLog', data);
+    };
+
+    // Socket.IO hookup
+    const socket = io(BASE, { path: '/ws' });
+    socket.on('record_create', ({ message, timestamp }) => {
+      prependNotification('wsLog', message, timestamp, 'create');
+    });
+    socket.on('record_update', ({ message, timestamp }) => {
+      prependNotification('wsLog', message, timestamp, 'update');
+    });
+
+    // New: load & display all records in table
+  // -------- Pagination Logic for All Records --------
+  let allRecords = [];
+  let currentPage = 1;
+  const pageSize = 10;
+  let totalPages = 1;
+
+  async function loadAllRecords() {
+    const res = await fetch(`${BASE}/records`, {
+      headers: { 'Authorization':'Bearer '+token }
+    });
+    if (!res.ok) return;
+    allRecords = await res.json();
+    totalPages = Math.ceil(allRecords.length / pageSize) || 1;
+    currentPage = 1;
+    renderPage();
+  }
+
+  function renderPage() {
+    const start = (currentPage - 1) * pageSize;
+    const pageData = allRecords.slice(start, start + pageSize);
+    const tbody = document.getElementById('allRecordsBody');
+    tbody.innerHTML = '';
+    pageData.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-gray-100';
+      tr.innerHTML = `
+        <td class="border px-4 py-2">${r.id}</td>
+        <td class="border px-4 py-2">${r.name}</td>
+        <td class="border px-4 py-2">${r.age}</td>
+        <td class="border px-4 py-2">${r.status}</td>
+        <td class="border px-4 py-2">${new Date(r.last_updated).toLocaleString()}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    document.getElementById('pageInfo').innerText =
+      `Page ${currentPage} of ${totalPages}`;
+    document.getElementById('prevPage').disabled = currentPage === 1;
+    document.getElementById('nextPage').disabled = currentPage === totalPages;
+  }
+
+  document.getElementById('prevPage').addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      renderPage();
+    }
+  });
+  document.getElementById('nextPage').addEventListener('click', () => {
+    if (currentPage < totalPages) {
+      currentPage++;
+      renderPage();
+    }
+  });
+
+  // initial load
+  loadAllRecords();
+  </script>
+</body>
+</html>

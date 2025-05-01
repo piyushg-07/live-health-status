@@ -1,0 +1,50 @@
+<!-- public/tester/login.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Health Status – Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+    <h1 class="text-2xl font-bold mb-6 text-center">Login</h1>
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+        <input type="text" id="username" class="mt-1 p-2 border rounded w-full" required />
+      </div>
+      <div>
+        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+        <input type="password" id="password" class="mt-1 p-2 border rounded w-full" required />
+      </div>
+      <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+        Login
+      </button>
+    </form>
+    <p id="errorMsg" class="mt-4 text-red-500 text-center"></p>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const user = document.getElementById('username').value;
+      const pass = document.getElementById('password').value;
+      try {
+        const res = await fetch('http://localhost:4000/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+        if (!res.ok) throw new Error('Invalid credentials');
+        const { token } = await res.json();
+        localStorage.setItem('token', token);
+        window.location.href = 'records.html';
+      } catch (err) {
+        document.getElementById('errorMsg').innerText = err.message;
+      }
+    });
+  </script>
+</body>
+</html>
