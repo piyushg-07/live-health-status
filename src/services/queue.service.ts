@@ -4,7 +4,7 @@ import { logger } from '../utils/logger';
 export class QueueService {
   static async publishUpdate(message: object) {
     try {
-      const ch = getRabbitChannel();
+      const ch = await  getRabbitChannel();
       ch.sendToQueue(
         'health_updates',
         Buffer.from(JSON.stringify(message)),

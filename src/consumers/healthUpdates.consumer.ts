@@ -14,7 +14,7 @@ export async function startConsumer(): Promise<void> {
       if (!msg) return;
 
       const data = JSON.parse(msg.content.toString());
-      const { action } = data; // e.g. 'create' or 'update'
+      const { action } = data; // 'create' or 'update'
 
       // 1) SSE: send full payload to any EventSource listeners
       broadcastSSE(data);

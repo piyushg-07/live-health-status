@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { app } from '../src/index';
+import { redisClient } from '../src/config/redis';
 
 let token: string;
 beforeAll(async () => {
@@ -44,4 +45,9 @@ describe('Records CRUD', () => {
       .set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(204);
   });
+});
+
+// Tear down Redis so Jest can exit cleanly
+afterAll(async () => {
+  await redisClient.quit();
 });

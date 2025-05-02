@@ -12,7 +12,6 @@ async function bootstrap() {
 
   const server = http.createServer(app);
 
-  // replace native WS init with Socket.IO
   initSocket(server);
 
   startConsumer();
