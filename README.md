@@ -141,7 +141,13 @@ server/
    - PostgreSQL on `localhost:5432`
     ```
 
-5. **Start the server**
+5. **Start service RabbitMQ**
+
+   ```bash
+   rabbitmq-server 
+   ```
+
+6. **Start the server**
 
    ```bash
    npm run dev
@@ -181,7 +187,7 @@ server/
 5. **Restart your stack**
 
    ```bash
-   docker compose up -d
+   docker compose up 
    ```
 
 6. **Stop & clean up**
@@ -189,6 +195,58 @@ server/
    ```bash
    docker compose down
    ```
+
+---
+
+### Running Locally
+
+1. **Install dependencies**  
+
+   ```bash
+   npm install
+   ```
+
+2. **Start service RabbitMQ**
+
+   ```bash
+   rabbitmq-server 
+   ```
+
+3. **Run the API & frontend**
+
+   * **Unix / Mac**
+
+     ```bash
+     npm run dev
+     ```
+
+   * **Windows**
+     You can also (**optionally**) run the provided batch script to spin everything up and open the dashboard automatically:
+
+     ```bat
+     .\run.bat
+     ```
+
+4. **Open your browser**
+
+   ```bash
+   http://localhost:4000/tester/records.html
+   ```
+
+### Alternative: Batch File (Windows)
+
+  If you’re on Windows, simply double‑click or execute in a Command Prompt:
+
+  ```bat
+  .\run.bat
+  ```
+
+  This will:
+
+  1. `docker-compose up -d`
+  2. Wait 10 seconds
+  3. Tail the API logs
+  4. Launch your browser at the dashboard URL
 
 ---
 
@@ -209,10 +267,10 @@ server/
 
 ## Real-Time Updates
 
-- **SSE**  
+* **SSE**  
   Connect to `/sse/health-updates` to receive full JSON payloads for each create/update.
 
-- **Socket.IO**  
+* **Socket.IO**  
   Connect to WS endpoint (`/ws`) and listen for:
 
   ```js
@@ -290,13 +348,13 @@ curl http://localhost:4000/sse/health-updates
 2. **Configure Jest** in `jest.config.js` (preset `ts-jest`, `testEnvironment: node`)
 
 3. **Run tests**
-   - Local:
+   * Local:
   
      ```bash
      npm test
      ```
 
-   - Docker:
+   * Docker:
 
      ```bash
      docker compose exec api npm test
@@ -304,42 +362,36 @@ curl http://localhost:4000/sse/health-updates
 
 ---
 
-- **Shell script**
+* **Shell script**
 
   ```bash
   chmod +x run-tests.sh
   ./run-tests.sh
   ```
 
-- **Dockerized**  
-
-  ```bash
-  docker compose exec api bash -lc "./run-tests.sh"
-  ```
-
 ---
 
 ## Additional Commands
 
-- **View API container logs**
+* **View API container logs**
 
   ```bash
   docker compose logs -f api
   ```
 
-- **View Redis logs**
+* **View Redis logs**
 
   ```bash
   docker compose logs -f redis
   ```
 
-- **View RabbitMQ logs**
+* **View RabbitMQ logs**
 
   ```bash
   docker compose logs -f rabbitmq
   ```
 
-- **View Postgres logs**
+* **View Postgres logs**
 
   ```bash
   docker compose logs -f postgres
