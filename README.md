@@ -64,35 +64,49 @@ server/
 
 ---
 
+## Tech Stack
+
+* **Backend**: Node.js, Express, TypeScript
+* **Database**: PostgreSQL
+* **Cache**: Redis
+* **Messaging**: RabbitMQ (AMQP)
+* **Real-Time**: Server-Sent Events (SSE), Socket.IO (WebSocket)
+* **Authentication**: JWT (JSON Web Tokens)
+* **Testing**: Jest, Supertest
+* **Containerization**: Docker, Docker Compose
+* **Frontend**: HTML, Tailwind CSS, Vanilla JS
+
+---
+
 ## 📁 Project Discription
 
-- `src/config`: Centralizes all external-service connections.  
-- `controllers ↔ services`: Keeps Express handlers thin; business logic in services.  
-- `routes`: Maps HTTP paths to controllers.  
-- `models`: Database schemas or ORM entities.  
-- `utils/middlewares`: Cross-cutting concerns (logging, auth).  
-- `realtime`: Dedicated peers for WebSocket and SSE.  
-- `consumers`: Separate message-queue consumers for resiliency.  
-- `public`: Tester HTML + JS.  
-- `docker-compose.yml`: Spins up DB, cache, queue for local dev
+* `src/config`: Centralizes all external-service connections.  
+* `controllers ↔ services`: Keeps Express handlers thin; business logic in services.  
+* `routes`: Maps HTTP paths to controllers.  
+* `models`: Database schemas or ORM entities.  
+* `utils/middlewares`: Cross-cutting concerns (logging, auth).  
+* `realtime`: Dedicated peers for WebSocket and SSE.  
+* `consumers`: Separate message-queue consumers for resiliency.  
+* `public`: Tester HTML + JS.  
+* `docker-compose.yml`: Spins up DB, cache, queue for local dev
 
 ## Architectural Decisions
 
-- **Layered Structure**: Controllers for HTTP handling, Services for business logic, Consumers for queue processing.
-- **Event-Driven**: RabbitMQ decouples writes from notifications, improving reliability under load.
-- **Caching**: Redis accelerates repeated `GET /records/:id` requests.
-- **Dual Real-Time Channels**:
-  - **SSE** serves full JSON payloads for record details
-  - **Socket.IO** sends lightweight notifications (`record_create`, `record_update`)
-- **Docker-First**: Entire stack reproducible via Docker Compose.
+* **Layered Structure**: Controllers for HTTP handling, Services for business logic, Consumers for queue processing.
+* **Event-Driven**: RabbitMQ decouples writes from notifications, improving reliability under load.
+* **Caching**: Redis accelerates repeated `GET /records/:id` requests.
+* **Dual Real-Time Channels**:
+  * **SSE** serves full JSON payloads for record details
+  * **Socket.IO** sends lightweight notifications (`record_create`, `record_update`)
+* **Docker-First**: Entire stack reproducible via Docker Compose.
 
 ## Features
 
-- **CRUD** operations on health records (name, age, status)
-- **Caching** via Redis
-- **Queueing** via RabbitMQ
-- **Server-Sent Events** (SSE) for live updates
-- **Socket.IO** notifications for lightweight "record created/updated" alerts
+* **CRUD** operations on health records (name, age, status)
+* **Caching** via Redis
+* **Queueing** via RabbitMQ
+* **Server-Sent Events** (SSE) for live updates
+* **Socket.IO** notifications for lightweight "record created/updated" alerts
 
 ---
 
